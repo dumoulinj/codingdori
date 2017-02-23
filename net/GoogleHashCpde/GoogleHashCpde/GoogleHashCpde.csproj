@@ -44,10 +44,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration.cs" />
+    <Compile Include="Object\Cache.cs" />
+    <Compile Include="Object\EndPoint.cs" />
+    <Compile Include="Object\EndPointCacheLatency.cs" />
+    <Compile Include="Object\Request.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resolver.cs" />
     <Compile Include="Solution.cs" />
+    <Compile Include="Object\Video.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

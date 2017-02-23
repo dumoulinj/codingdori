@@ -17,7 +17,10 @@ namespace GoogleHashCpde
 
         public Solution Resolve()
         {
-            throw new NotImplementedException();
+            var sol = new Solution(_conf);
+           
+            sol.PutVideoInCache(_conf.Caches[0], _conf.Videos[0]);
+            return sol;
         }
     }
 }
