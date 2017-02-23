@@ -74,7 +74,7 @@ namespace GoogleHashCpde
                 }
                 conf.EndPoints[i] = new EndPoint(i,lat,caches.ToArray());
             }
-            for (int i = 0; i < conf.NumberVideo; i++, idx++)
+            for (int i = 0; i < conf.NumberRequest; i++, idx++)
             {
                 var line = content[idx];
                 var splits = line.Split(' ');

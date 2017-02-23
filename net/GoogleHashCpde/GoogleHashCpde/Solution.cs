@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using GoogleHashCpde.Object;
@@ -35,10 +36,10 @@ namespace GoogleHashCpde
             File.WriteAllLines(file, content);
         }
 
-        public int Evaluate()
+        public BigInteger Evaluate()
         {
-            var score = 0;
-            var denom = 0;
+            var score = BigInteger.Zero;
+            var denom = BigInteger.Zero;
             foreach (var request in _conf.Requests)
             {
                 var baseLat = request.EndPoint.Latency;
@@ -57,6 +58,7 @@ namespace GoogleHashCpde
                         }
                     }
                 }
+                
                 score += ((baseLat - minLat) * request.Number *1000);
                 denom += request.Number;
 
