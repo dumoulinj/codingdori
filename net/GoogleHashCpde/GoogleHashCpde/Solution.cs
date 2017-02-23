@@ -22,6 +22,21 @@ namespace GoogleHashCpde
             _conf = conf;
         }
 
+        public Solution(Configuration conf, Dictionary<Cache, ISet<Video>> results)
+        {
+            _conf = conf;
+            Results= new Dictionary<Cache, ISet<Video>>();
+            foreach (var r in results)
+            {
+                var nv = new HashSet<Video>();
+                foreach (var v in r.Value)
+                {
+                    nv.Add(v);
+                }
+                Results.Add(r.Key,nv);
+            }
+        }
+
         public void WriteToFile(string file)
         {
             var content = new string[Results.Count+1];
@@ -42,6 +57,10 @@ namespace GoogleHashCpde
             var denom = BigInteger.Zero;
             foreach (var request in _conf.Requests)
             {
+                denom += request.Number;
+            }
+            foreach (var request in _conf.Requests)
+            {
                 var baseLat = request.EndPoint.Latency;
                 var minLat = baseLat;
                 foreach (var epclat in request.EndPoint.EPCacheLat)
@@ -58,9 +77,13 @@ namespace GoogleHashCpde
                         }
                     }
                 }
-                
-                score += ((baseLat - minLat) * request.Number *1000);
-                denom += request.Number;
+                if (baseLat - minLat > 0)
+                {
+                    BigInteger t = (baseLat - minLat);
+                    t *= (request.Number * 1000);
+                    score += t;
+                }
+               
 
             }
             return score/denom;
@@ -92,6 +115,5 @@ namespace GoogleHashCpde
             }
             cache.Removesize(v.Size);
         }
-
     }
 }

@@ -32,7 +32,7 @@ namespace GoogleHashCpde
             this.CacheCapacity = cacheCapacity;
             Videos = new Video[NumberVideo];
             EndPoints = new EndPoint[NumberEndPoints];
-            Caches = new Cache[cacheCapacity];
+            Caches = new Cache[numberCaches];
             Requests=new Request[numberRequest];
         }
 
