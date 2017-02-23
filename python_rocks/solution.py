@@ -24,12 +24,27 @@ class Solution:
                 f.write(" ".join(str(video) for video in videos)+ "\n")
 
 
-    def compute_score(self):
+    def compute_score(self, config):
         """
         Compute and return the score
         """
         score = 0
+        denom = 0
 
-        # ...
+        for request_description in config.request_descriptions:
+            Re = request_description.endpoint_id
+            Rv = request_description.requested_video_id
+            endpoint = config.endpoints[Re]
+            LD = endpoint.latency
+            min_latency = LD
 
-        return score
+            for c in range(config.nb_caches):
+                if Rv in self.cache_servers[c] and c in endpoint.connections:
+                    latency = endpoint.connections[c]
+                    if latency < min_latency:
+                        min_latency = latency
+
+            score += ((LD - min_latency) * request_description.nb_requests * 1000)
+            denom += request_description.nb_requests
+
+        return score/denom
