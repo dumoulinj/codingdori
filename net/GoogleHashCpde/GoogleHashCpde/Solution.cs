@@ -38,6 +38,7 @@ namespace GoogleHashCpde
         public int Evaluate()
         {
             var score = 0;
+            var denom = 0;
             foreach (var request in _conf.Requests)
             {
                 var baseLat = request.EndPoint.Latency;
@@ -56,10 +57,11 @@ namespace GoogleHashCpde
                         }
                     }
                 }
-                score += ((baseLat - minLat) * request.Number);
+                score += ((baseLat - minLat) * request.Number *1000);
+                denom += request.Number;
 
             }
-            return score;
+            return score/denom;
         }
         
 

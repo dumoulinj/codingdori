@@ -70,6 +70,7 @@ namespace GoogleHashCpde
                     var cacheId = int.Parse(ssplits[0]);
                     var slat = int.Parse(ssplits[1]);
                     var epc = new EndPointCacheLatency(conf.Caches[cacheId], slat);
+                    caches.Add(epc);
                 }
                 conf.EndPoints[i] = new EndPoint(i,lat,caches.ToArray());
             }
