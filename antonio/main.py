@@ -16,7 +16,7 @@ SMALL = 3
 MEDIUM = 2
 BIG = 0
 
-CURRENT = EXAMPLE
+CURRENT = BIG
 
 if __name__ == "__main__":
     config_filename = os.path.join(INPUTS_PATH, INPUT_FILES[CURRENT] + ".in")
@@ -37,36 +37,34 @@ if __name__ == "__main__":
         solution = Solution()
         alp = 10
         bet = 0.1
-        gam = 0.1
+        gam = 0.9
         cache_space_list = np.repeat(config.capacity, config.nb_caches)
 
         req_dec = config.request_descriptions
-        list_req = np.empty([0, 3], dtype=int)
-        for i in range(0, len(req_dec)):
-            list_req = np.vstack([list_req, [req_dec[i].endpoint_id, req_dec[i].nb_requests, req_dec[i].requested_video_id]])
-        list_req.view('i8,i8,i8').sort(order=['f1'], axis=0)
-        list_req = np.flipud(list_req)
+
+        list_endpoints = [x.endpoint_id for x in req_dec]
+        list_nb_requests = [x.nb_requests for x in req_dec]
+        list_requested_video_id = [x.requested_video_id for x in req_dec]
+        list_nb_requests, list_endpoints, list_requested_video_id = zip(*sorted(zip(list_nb_requests, list_endpoints,list_requested_video_id)))
 
         loop = True
         while loop:
 
-            list_req_sub = list_req
-            # print(list_req_sub)
-
             video_size_max = 0
-            for i in range(len(list_req_sub)):
-                video_id = list_req_sub[i][2]
+            for i in range(len(list_requested_video_id)):
+                video_id = list_requested_video_id[i]
                 video_size = config.video_sizes[video_id]
                 if (video_size > video_size_max):
                     video_size_max = video_size
-            print(video_size_max)
+
+            print(len(list_requested_video_id))
 
             func2_res = []
             func2_id = []
             # chose best video
-            for i in range(len(list_req_sub)):
-                endpoint_id = list_req_sub[i][0]
-                video_id = list_req_sub[i][2]
+            for i in range(min([alp, len(list_endpoints)])):
+                endpoint_id = list_endpoints[i]
+                video_id = list_requested_video_id[i]
                 video_size = config.video_sizes[video_id]
                 endpoint_latency = config.endpoints[endpoint_id].latency
                 endpoint_connections = config.endpoints[endpoint_id].connections
@@ -97,21 +95,20 @@ if __name__ == "__main__":
                 func2_res.append(func2)
                 func2_id.append(best_cache)
 
+            if len(func2_res) == 0:
+                break
+
             best_video_val_i = func2_res.index(max(func2_res))
-            best_video_id = list_req_sub[best_video_val_i][2]
+            best_video_id = list_requested_video_id[best_video_val_i]
             best_cache_id = func2_id[best_video_val_i]
             best_video_size = config.video_sizes[best_video_id]
 
             # update the cache
             cache_space_list[best_cache_id] -= best_video_size
-            print(list_req)
+            list_endpoints = list(filter(lambda a: a != best_video_id, list_endpoints))
+            list_nb_requests = list(filter(lambda a: a != best_video_id, list_nb_requests))
+            list_requested_video_id = list(filter(lambda a: a != best_video_id, list_requested_video_id))
 
-            new_list_req = np.empty([0, 3], dtype=int)
-            for i in range(0, len(list_req)):
-                if list_req[i,2] != best_video_id:
-                    new_list_req = np.vstack([new_list_req, list_req[i]])
-            list_req = np.copy(new_list_req)
-            print()
             all_moins_un = True
             for entry in func2_res:
                 if entry != -1:
@@ -129,7 +126,7 @@ if __name__ == "__main__":
 
 
         solution.write_result("output")
-        # print(solution.compute_score(config))
+        print(solution.compute_score(config))
 
         best_solution = max(solvers, key=attrgetter('score'))
         print("Best solver: {} ({})".format(best_solution.solver_config.name, best_solution.score))
