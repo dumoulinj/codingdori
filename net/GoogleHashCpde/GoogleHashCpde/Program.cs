@@ -16,7 +16,6 @@ namespace GoogleHashCpde
             {
                 var conf = Configuration.ReadFromFile(f);
                 var sol = new Resolver(conf).Resolve();
-                Console.WriteLine(sol.Evaluate());
                 var name = Path.GetFileNameWithoutExtension(f);
                 Console.WriteLine(name + " " + sol.Evaluate());
                 sol.WriteToFile($"{baseFolder}{name}.out");
