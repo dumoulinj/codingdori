@@ -1,3 +1,6 @@
+import sys
+
+
 class Solution:
     def __init__(self):
         # Dict of servers, key: server id, value: list of video ids
@@ -31,20 +34,25 @@ class Solution:
         score = 0
         denom = 0
 
-        for request_description in config.request_descriptions:
-            Re = request_description.endpoint_id
-            Rv = request_description.requested_video_id
-            endpoint = config.endpoints[Re]
-            LD = endpoint.latency
-            min_latency = LD
+        try:
+            for request_description in config.request_descriptions:
+                Re = request_description.endpoint_id
+                Rv = request_description.requested_video_id
+                endpoint = config.endpoints[Re]
+                LD = endpoint.latency
+                min_latency = LD
 
-            for c in range(config.nb_caches):
-                if Rv in self.cache_servers[c] and c in endpoint.connections:
-                    latency = endpoint.connections[c]
-                    if latency < min_latency:
-                        min_latency = latency
+                for c in range(config.nb_caches):
+                    if c in self.cache_servers and Rv in self.cache_servers[c] and c in endpoint.connections:
+                        latency = endpoint.connections[c]
+                        if latency < min_latency:
+                            min_latency = latency
 
-            score += ((LD - min_latency) * request_description.nb_requests * 1000)
-            denom += request_description.nb_requests
+                score += ((LD - min_latency) * request_description.nb_requests)
+                denom += request_description.nb_requests
 
-        return score/denom
+            return (score/denom)*1000
+
+        except Exception as e:
+            e = sys.exc_info()[0]
+            return 0
