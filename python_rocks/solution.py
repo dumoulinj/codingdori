@@ -35,9 +35,9 @@ class Solution:
         denom = 0
 
         try:
-            for request_description in config.request_descriptions:
-                Re = request_description.endpoint_id
-                Rv = request_description.requested_video_id
+            for request in config.requests:
+                Re = request.endpoint_id
+                Rv = request.requested_video_id
                 endpoint = config.endpoints[Re]
                 LD = endpoint.latency
                 min_latency = LD
@@ -48,8 +48,8 @@ class Solution:
                         if latency < min_latency:
                             min_latency = latency
 
-                score += ((LD - min_latency) * request_description.nb_requests)
-                denom += request_description.nb_requests
+                score += ((LD - min_latency) * request.nb_requests)
+                denom += request.nb_requests
 
             return (score/denom)*1000
 

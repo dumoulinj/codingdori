@@ -2,7 +2,7 @@ import os
 
 from operator import attrgetter
 import numpy as np
-
+import pickle
 
 from config import Config
 from solution import Solution
@@ -18,38 +18,61 @@ SMALL = 3
 MEDIUM = 2
 BIG = 0
 
-CONFS = [EXAMPLE, SMALL, MEDIUM, BIG]
+#CONFS = [EXAMPLE, SMALL, MEDIUM, BIG]
+CONFS = [SMALL]
+
+
+LOAD_CONF = False
 
 if __name__ == "__main__":
     for conf_id in CONFS:
         print("Config : {}".format(CONF_NAMES[conf_id]))
         config_filename = os.path.join(INPUTS_PATH, CONF_NAMES[conf_id] + ".in")
-        config = Config(config_filename)
+
+        pkl_config_filename = config_filename + ".pkl"
+        if not LOAD_CONF:
+            config = Config(config_filename)
+
+            # Compute possible gain by video for each endpoints
+            config.read_configuration()
+            config.compute_gains_by_video()
+
+            # Pickle gains
+            output = open(pkl_config_filename, 'wb')
+            pickle.dump(config, output)
+            output.close()
+        else:
+            pkl_file = open(pkl_config_filename, 'rb')
+            config = pickle.load(pkl_file)
+            print("Config loaded!")
 
         if config.valid:
             solvers = []
             solver_configs = []
 
-            alphas = [2, 5, 10, 15, 20, 25, 30]
-            betas = [0.1, 0.3, 0.5, 0.8]
-            gamas = [0.1, 0.3, 0.5, 0.8]
+            # alphas = [2, 5, 10, 15, 20, 25, 30]
+            # betas = [0.1, 0.3, 0.5, 0.8]
+            # gamas = [0.1, 0.3, 0.5, 0.8]
+            #
+            # _bgs = [(0.1, 0.8,),
+            #       (0.2, 0.8,),
+            #       (0.3, 0.8,),
+            #       (0.8, 0.1,),
+            #       (0.8, 0.2,),
+            #       (0.8, 0.3,)]
+            #
+            # for a in alphas:
+            #     for bg in _bgs:
+            #         b = bg[0]
+            #         g = bg[1]
+            #         sconf = SolverConfig("Test alpha={}, beta={}, gamma={}".format(str(a), str(b), str(g)))
+            #         sconf.alpha = a
+            #         sconf.beta = b
+            #         sconf.gama = g
+            #         solver_configs.append(sconf)
 
-            _bgs = [(0.1, 0.8,),
-                  (0.2, 0.8,),
-                  (0.3, 0.8,),
-                  (0.8, 0.1,),
-                  (0.8, 0.2,),
-                  (0.8, 0.3,)]
-
-            for a in alphas:
-                for bg in _bgs:
-                    b = bg[0]
-                    g = bg[1]
-                    sconf = SolverConfig("Test alpha={}, beta={}, gamma={}".format(str(a), str(b), str(g)))
-                    sconf.alpha = a
-                    sconf.beta = b
-                    sconf.gama = g
-                    solver_configs.append(sconf)
+            sconf = SolverConfig("Test")
+            solver_configs.append(sconf)
 
             for solver_config in solver_configs:
                 solvers.append(Solver(config, solver_config))
@@ -60,7 +83,7 @@ if __name__ == "__main__":
             best_solution = max(solvers, key=attrgetter('score'))
             print("Best solver: {} ({})".format(best_solution.solver_config.name, int(best_solution.score)))
 
-            sol = best_solution.best_solution
+            sol = best_solution.solution
             print()
             out_filename = os.path.join(OUTPUTS_PATH, CONF_NAMES[conf_id] + ".out")
             sol.write_result(out_filename)
