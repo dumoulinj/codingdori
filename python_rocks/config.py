@@ -15,6 +15,14 @@ class Cache:
         self.gains = {}
         self.ordered_gains = []
 
+        self.need_sort = False
+
+    def sort_ordered_gains(self):
+        # Order by gain
+        self.ordered_gains = [(k, v) for k, v in self.gains.items()]
+        self.ordered_gains.sort(key=itemgetter(1), reverse=True)
+        self.need_sort = False
+
     def add_video(self, video_id, video_size):
         """
         Try to add a video to the list. If size available, adds it, update available size and return True. If not,
@@ -24,9 +32,10 @@ class Cache:
         :return:
         """
         if self.available_size >= video_size:
-            self.videos.append(video_id)
-            self.available_size -= video_size
-            return True
+            if video_id not in self.videos:
+                self.videos.append(video_id)
+                self.available_size -= video_size
+                return True
 
         return False
 
@@ -66,6 +75,8 @@ class Config:
 
 
         self.caches = []
+
+        self.other_gains = {}
 
         self.valid = False
 
@@ -161,9 +172,12 @@ class Config:
                     video_size = self.video_sizes[video_id]
                     cache.min_candidate_size = min(cache.min_candidate_size, video_size)
 
+                    # In prevision to add to other caches if best is full
+                    key = (video_id, cache_id)
+                    value = cache_gains[1:]
+                    self.other_gains[key] = value
+
         # Loop on servers
         for cache in self.caches:
-            # Order by gain
-            cache.ordered_gains = [(k, v) for k, v in cache.gains.items()]
-            cache.ordered_gains.sort(key=itemgetter(1), reverse=True)
-            cache.gains = {}
+            cache.sort_ordered_gains()
+            #cache.gains = {}
