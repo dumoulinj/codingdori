@@ -14,9 +14,12 @@ namespace GoogleHashCpde
             var baseFolder = @"c:\temp\";
             foreach (var f in Directory.GetFiles(baseFolder, "*.in").OrderBy(Path.GetFileNameWithoutExtension))
             {
-                var conf = Configuration.ReadFromFile(f);
-                var sol = new Resolver(conf).Resolve();
                 var name = Path.GetFileNameWithoutExtension(f);
+                Console.WriteLine($"Starting {name}  at {DateTime.Now}");
+                var conf = Configuration.ReadFromFile(f);
+                Console.WriteLine($"Conf read {name} at {DateTime.Now}");
+                var sol = new Resolver(conf).Resolve();
+                
                 Console.WriteLine(name + " " + sol.Evaluate());
                 sol.WriteToFile($"{baseFolder}{name}.out");
             }

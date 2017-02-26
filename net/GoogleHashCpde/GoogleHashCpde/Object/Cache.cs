@@ -5,27 +5,27 @@
         public int Id { get; private set; }
         public int Size { get; private set; }
 
-        private int _remainSize;
+        public int RemainSize;
         public Cache(int id, int size)
         {
             Id = id;
             Size = size;
-            _remainSize = size;
+            RemainSize = size;
         }
 
         public bool PutSize(int size)
         {
-            if (_remainSize < size)
+            if (RemainSize < size)
             {
                 return false;
             }
-            _remainSize -= size;
+            RemainSize -= size;
             return true;
         }
 
         public void Removesize(int size)
         {
-            _remainSize += size;
+            RemainSize += size;
         }
         protected bool Equals(Cache other)
         {

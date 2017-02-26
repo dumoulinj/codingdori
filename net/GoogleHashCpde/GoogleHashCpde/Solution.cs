@@ -14,12 +14,29 @@ namespace GoogleHashCpde
     class Solution
     {
         public Dictionary<Cache, ISet<Video>> Results { get; private set; }
-        private Configuration _conf;
 
+        private readonly object[][] _optiRes;
+
+        private Configuration _conf;
+        private BigInteger denom;
         public Solution(Configuration conf)
         {
             Results = new Dictionary<Cache, ISet<Video>>();
             _conf = conf;
+            denom = BigInteger.Zero;
+            foreach (var request in _conf.Requests)
+            {
+                denom += request.Number;
+            }
+            _optiRes = new object[_conf.NumberCache][];
+            for (var i = 0; i < _conf.NumberCache; i++)
+            {
+                _optiRes[i] = new object[_conf.NumberVideo];
+                for (var j = 0; j < _conf.NumberVideo; j++)
+                {
+                    _optiRes[i][j] = false;
+                }
+            }
         }
 
         public Solution(Configuration conf, Dictionary<Cache, ISet<Video>> results)
@@ -39,80 +56,76 @@ namespace GoogleHashCpde
 
         public void WriteToFile(string file)
         {
-            var content = new string[Results.Count+1];
-            var fRes = Results.Where(r => r.Value.Count > 0).ToDictionary(k=>k.Key,k=>k.Value);
-            content[0] = fRes.Count.ToString();
-            var vCache = fRes.Select(s =>
+            var res = new List<String>();
+            for (var i = 0; i < _conf.NumberCache; i++)
             {
-                var val = Join(" ", s.Value.Select(v => v.Id.ToString()).ToList());
-                return $"{s.Key.Id} {val}";
-            }).ToArray();
-            Array.Copy(vCache, 0, content, 1, vCache.Length);
+                var idx = new List<String>();
+                for (var j = 0; j < _conf.NumberVideo; j++)
+                {
+                    if ((bool) _optiRes[i][j])
+                    {
+                        idx.Add(j.ToString());
+                    }
+                }
+                if (idx.Count > 0)
+                {
+                    res.Add($"{i} {string.Join(" ", idx)}");
+
+                }
+            }
+            var content = new String[res.Count + 1];
+
+            content[0] = res.Count.ToString();
+            Array.Copy(res.ToArray(), 0, content, 1, res.Count);
             File.WriteAllLines(file, content);
         }
 
         public BigInteger Evaluate()
         {
+
             var score = BigInteger.Zero;
-            var denom = BigInteger.Zero;
-            foreach (var request in _conf.Requests)
-            {
-                denom += request.Number;
-            }
             foreach (var request in _conf.Requests)
             {
                 var baseLat = request.EndPoint.Latency;
                 var minLat = baseLat;
                 foreach (var epclat in request.EndPoint.EPCacheLat)
                 {
-                    ISet<Video> videos;
-                    if (Results.TryGetValue(epclat.Cache, out videos))
+
+                    if ((bool) _optiRes[epclat.Cache.Id][request.Video.Id])
                     {
-                        if (videos.Contains(request.Video))
+                        if (minLat > epclat.Latency)
                         {
-                            if (epclat.Latency < minLat)
-                            {
-                                minLat = epclat.Latency;
-                            }
+                            minLat = epclat.Latency;
                         }
                     }
+                  
                 }
-                if (baseLat - minLat > 0)
-                {
-                    BigInteger t = (baseLat - minLat);
-                    t *= (request.Number * 1000);
-                    score += t;
-                }
-               
-
+                BigInteger t = (baseLat - minLat);
+                t *= (request.Number * 1000);
+                score += t;
             }
-            return score/denom;
+            return score / denom;
+
         }
-        
+
 
         public bool PutVideoInCache(Cache cache, Video v)
-        {  
-            if (cache.PutSize(v.Size))
-            {
-                ISet<Video> videos;
-                if (!Results.TryGetValue(cache, out videos))
-                {
-                    videos = new HashSet<Video>();
-                    Results.Add(cache, videos);
-                }
-                videos.Add(v);
-                return true;
-            }
-            return false;
+        {
+            if (!cache.PutSize(v.Size)) return false;
+            _optiRes[cache.Id][v.Id] = true;
+              
+            return true;
+        }
+
+        public bool IsPlaced(Cache cache, Video v)
+        {
+            return (bool) _optiRes[cache.Id][v.Id];
         }
 
         public void RemoveVideoFromCache(Cache cache, Video v)
         {
-            ISet<Video> videos;
-            if (Results.TryGetValue(cache, out videos))
-            {
-                videos.Remove(v);
-            }
+            if (!(bool) _optiRes[cache.Id][v.Id]) return;
+            _optiRes[cache.Id][v.Id] = false;
             cache.Removesize(v.Size);
         }
     }
