@@ -5,128 +5,182 @@ from config import Config
 from solver import Solver, SolverConfig
 
 from antonio.solution import Solution
+import time
 
 INPUTS_PATH = "inputs"
 OUTPUTS_PATH = "outputs"
-
-INPUT_FILES = ["kittens", "me_at_the_zoo", "trending_today", "videos_worth_spreading"]
-
+INPUT_FILES = ["kittens_", "me_at_the_zoo_", "trending_today_", "videos_worth_spreading_"]
 EXAMPLE = 1
 SMALL = 3
 MEDIUM = 2
 BIG = 0
-
 CURRENT = BIG
 
-if __name__ == "__main__":
+def compute_score(alpha, beta, gamma, delta):
+
     config_filename = os.path.join(INPUTS_PATH, INPUT_FILES[CURRENT] + ".in")
     config = Config(config_filename)
 
     if config.valid:
         solvers = []
         solver_configs = []
-
         solver_configs.append(SolverConfig("Test"))
-
         for solver_config in solver_configs:
             solvers.append(Solver(config, solver_config))
-
         for solver in solvers:
             solver.solve()
-
         solution = Solution()
-        alp = 10
-        bet = 0.1
-        gam = 0.9
-        cache_space_list = np.repeat(config.capacity, config.nb_caches)
+        for cache_id in range(0,config.nb_caches):
+            solution.cache_servers[cache_id] = []
 
-        req_dec = config.request_descriptions
+        # initialization of the parameters:
+        # alpha -> number of elements that are analyzed
+        # beta  -> 1st weight
+        # gamma -> 2nd weight
 
-        list_endpoints = [x.endpoint_id for x in req_dec]
-        list_nb_requests = [x.nb_requests for x in req_dec]
-        list_requested_video_id = [x.requested_video_id for x in req_dec]
-        list_nb_requests, list_endpoints, list_requested_video_id = zip(*sorted(zip(list_nb_requests, list_endpoints,list_requested_video_id)))
 
-        loop = True
-        while loop:
+        # initialization of the cache free space
+        cache_free_space_list = np.repeat(config.capacity, config.nb_caches)
 
-            video_size_max = 0
-            for i in range(len(list_requested_video_id)):
-                video_id = list_requested_video_id[i]
-                video_size = config.video_sizes[video_id]
-                if (video_size > video_size_max):
-                    video_size_max = video_size
+        # put the information of all the request_description in separated lists
+        list_endpoints_id = [x.endpoint_id for x in config.request_descriptions]
+        list_nb_requests = [x.nb_requests for x in config.request_descriptions]
+        list_requested_video_id = [x.requested_video_id for x in config.request_descriptions]
+
+        # sort them depending on the number of request
+        list_nb_requests, list_endpoints_id, list_requested_video_id = zip(*sorted(zip(list_nb_requests, list_endpoints_id, list_requested_video_id), reverse=True))
+
+        list_nb_requests = list(list_nb_requests)
+        list_endpoints_id = list(list_endpoints_id)
+        list_requested_video_id = list(list_requested_video_id)
+        list_video_size = []
+        for i in range(len(list_requested_video_id)):
+            list_video_size.append(config.video_sizes[list_requested_video_id[i]])
+
+        # the while loop will be break
+        while True:
 
             print(len(list_requested_video_id))
 
-            func2_res = []
-            func2_id = []
-            # chose best video
-            for i in range(min([alp, len(list_endpoints)])):
-                endpoint_id = list_endpoints[i]
+            # calculate the video_size_max parameter
+            video_size_max = max(list_video_size[0:min(alpha, len(list_endpoints_id))])
+
+            # choose the best video by comparing a
+            weight_video_score_list = []
+            weight_video_id_list = []
+            for i in range(0, min([alpha, len(list_endpoints_id)])):
+                endpoint_id = list_endpoints_id[i]
                 video_id = list_requested_video_id[i]
                 video_size = config.video_sizes[video_id]
                 endpoint_latency = config.endpoints[endpoint_id].latency
                 endpoint_connections = config.endpoints[endpoint_id].connections
 
                 # chose the best cache
-                func1_res = []
-                func1_id = []
-                for j in endpoint_connections.keys():
-                    cache_id = j
-                    cache_latency = endpoint_connections[j]
-                    if (video_size <= cache_space_list[j]):
-                        func1 = (1-bet)*(endpoint_latency-cache_latency)/endpoint_latency + \
-                            bet*(config.capacity-cache_space_list[j]/config.capacity)
-                    else:
-                        func1 = -1
-                    func1_res.append(func1)
-                    func1_id.append(cache_id)
+                weight_cache_score_list = []
+                weight_cache_id_list = []
+                #same_video_index = [i for i, val in enumerate(list_requested_video_id) if val == video_id]
+                #same_video_index.remove(i)
+                #same_video_endpoints = [list_endpoints_id[int(i_)] for i_ in same_video_index]
+                #same_video_nb_requests = [list_endpoints_id[int(i_)] for i_ in same_video_index]
+                #list_cache = np.repeat(0, config.nb_caches)
+                #for i_ in range(0, len(same_video_endpoints)):
+                #    chache_id_list = list(config.endpoints[same_video_endpoints[i_]].connections.keys())
+                #    for j_ in range(0, len(chache_id_list)):
+                #        list_cache[chache_id_list[j_]] += same_video_nb_requests[i_]
+                # print(list_cache)
+                for cache_id in endpoint_connections.keys():
+                    if video_id not in solution.cache_servers[cache_id] and video_size <= cache_free_space_list[cache_id]:
+                        # find same video with the same cache
 
-                best_cache = func1_id[func1_res.index(max(func1_res))]
+
+                        cache_latency = endpoint_connections[cache_id]
+                        score_cache = (1-beta)*(1-delta)*(endpoint_latency-cache_latency)/endpoint_latency + \
+                            beta*(1-delta)*(cache_free_space_list[cache_id])/config.capacity + \
+                            (1 - beta) * delta * (1)
+                            #(1-beta)*delta*(list_cache[cache_id])/max(list_cache)
+                    else:
+                        score_cache = -1
+                    weight_cache_score_list.append(score_cache)
+                    weight_cache_id_list.append(cache_id)
+
+                # it could happen that endpoints has no connection:
+                # just skip the line
+                if len(weight_cache_score_list) == 0:
+                    break
+
+                best_cache = weight_cache_id_list[weight_cache_score_list.index(max(weight_cache_score_list))]
 
                 # chose the best video
                 best_cache_latency = endpoint_connections[best_cache]
-                if max(func1_res) != -1:
-                    func2 = (1-gam)*(endpoint_latency-best_cache_latency)/endpoint_latency + \
-                        gam*(video_size_max-video_size/video_size_max)
+                if max(weight_cache_score_list) != -1:
+                    score_video = (1-gamma)*(endpoint_latency-best_cache_latency)/endpoint_latency + \
+                        gamma*(video_size_max-video_size)/video_size_max
                 else:
-                    func2 = -1
-                func2_res.append(func2)
-                func2_id.append(best_cache)
+                    score_video = -1
+                weight_video_score_list.append(score_video)
+                weight_video_id_list.append(best_cache)
 
-            if len(func2_res) == 0:
+            if len(weight_video_score_list) == 0:
                 break
 
-            best_video_val_i = func2_res.index(max(func2_res))
-            best_video_id = list_requested_video_id[best_video_val_i]
-            best_cache_id = func2_id[best_video_val_i]
+            best_video_val_index = weight_video_score_list.index(max(weight_video_score_list))
+            best_video_id = list_requested_video_id[best_video_val_index]
+            best_cache_id = weight_video_id_list[best_video_val_index]
             best_video_size = config.video_sizes[best_video_id]
 
+            # remove the -1
+            worst_video_val_index = [i for i, val in enumerate(weight_video_score_list) if val == -1]
+            # worst_video_val_index.append(best_video_val_index)
+            # worst_video_val_index = list(set(worst_video_val_index))
+            if len(worst_video_val_index):
+                for index in sorted(worst_video_val_index, reverse=True):
+                    del list_endpoints_id[index]
+                    del list_nb_requests[index]
+                    del list_requested_video_id[index]
+                    del list_video_size[index]
+
+            # remove the same video
+            same_best_video_index = [i for i, val in enumerate(list_requested_video_id) if val == best_video_id]
+            for index in sorted(same_best_video_index, reverse=True):
+                del list_endpoints_id[index]
+                del list_nb_requests[index]
+                del list_requested_video_id[index]
+                del list_video_size[index]
+
+
             # update the cache
-            cache_space_list[best_cache_id] -= best_video_size
-            list_endpoints = list(filter(lambda a: a != best_video_id, list_endpoints))
-            list_nb_requests = list(filter(lambda a: a != best_video_id, list_nb_requests))
-            list_requested_video_id = list(filter(lambda a: a != best_video_id, list_requested_video_id))
+            cache_free_space_list[best_cache_id] -= best_video_size
 
-            all_moins_un = True
-            for entry in func2_res:
-                if entry != -1:
-                    all_moins_un = False
+            # if all elements are equal to -1
+            if weight_video_score_list.count(-1) == len(weight_video_score_list):
+                if alpha < len(list_requested_video_id):
+                    alpha = min([2*alpha, len(list_requested_video_id)])
+                else:
                     break
+            else:
+                solution.cache_servers[best_cache_id].append(best_video_id)
+                # print(str(best_video_id) + " -> " + str(best_cache_id))
 
-            if all_moins_un:
+            if len(list_requested_video_id) == 0:
                 break
 
-            if best_cache_id not in solution.cache_servers:
-                solution.cache_servers[best_cache_id] = []
-            solution.cache_servers[best_cache_id].append(best_video_id)
-
-
-
-
         solution.write_result("output")
-        print(solution.compute_score(config))
+        return solution.compute_score(config)
 
-        best_solution = max(solvers, key=attrgetter('score'))
-        print("Best solver: {} ({})".format(best_solution.solver_config.name, best_solution.score))
+        # best_solution = max(solvers, key=attrgetter('score'))
+        # print("Best solver: {} ({})".format(best_solution.solver_config.name, best_solution.score))
+
+if __name__ == "__main__":
+    list_beta = np.linspace(0,1,11)
+    # print(list_beta)
+    #list_gamma = np.linspace(0,1,5)
+    #res_mat = np.zeros((len(list_beta),len(list_gamma)))
+    start_time = time.time()
+    for i in range(0, len(list_beta)):
+        #for j in range(0, len(list_gamma)):
+        # res_mat[i][j] = compute_score(50,list_beta[i],0.5)
+        print(compute_score(50, list_beta[i], 0.5, 0))
+    #print(compute_score(50, 0.5, 0.5, 0))
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+    # alpha 1000 ~ 5000 s

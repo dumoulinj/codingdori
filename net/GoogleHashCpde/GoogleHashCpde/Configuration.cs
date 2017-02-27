@@ -81,7 +81,7 @@ namespace GoogleHashCpde
                 var vid = int.Parse(splits[0]);
                 var eid = int.Parse(splits[1]);
                 var req = int.Parse(splits[2]);
-                conf.Requests[i] = new Request(conf.Videos[vid],conf.EndPoints[eid], req);
+                conf.Requests[i] = new Request(vid,eid, req, conf.EndPoints[eid].Latency);
             }
             return conf;
         }
