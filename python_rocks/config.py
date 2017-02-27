@@ -78,6 +78,10 @@ class Config:
 
         self.other_gains = {}
 
+        self.max_gain = 0
+
+        self.max_size = 0
+
         self.valid = False
 
     def read_configuration(self):
@@ -107,6 +111,8 @@ class Config:
             videos_sizes = f.readline().split(" ")
             for video_size in videos_sizes:
                 self.video_sizes.append(int(video_size))
+
+            self.max_size = max(self.video_sizes)
 
             # Third section : endpoints
             for i in range(self.nb_endpoints):
@@ -143,6 +149,8 @@ class Config:
             print("Error while reading configuration file : {}".format(self.filename))
 
     def compute_gains_by_video(self):
+        nb_others = min(25, self.nb_caches-1)
+
         # Loop on endpoints
         for endpoint in self.endpoints:
             # Loop on requests
@@ -167,14 +175,14 @@ class Config:
                         cache.gains[video_id] += cache_gain
                     else:
                         cache.gains[video_id] = cache_gain
-
+                    self.max_gain = max(self.max_gain, cache.gains[video_id])
                     # Update min candidate size
                     video_size = self.video_sizes[video_id]
                     cache.min_candidate_size = min(cache.min_candidate_size, video_size)
 
                     # In prevision to add to other caches if best is full
                     key = (video_id, cache_id)
-                    value = cache_gains[1:]
+                    value = cache_gains[1:nb_others]
                     self.other_gains[key] = value
 
         # Loop on servers

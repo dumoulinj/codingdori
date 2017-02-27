@@ -18,8 +18,8 @@ SMALL = 3
 MEDIUM = 2
 BIG = 0
 
-#CONFS = [EXAMPLE, SMALL, MEDIUM, BIG]
-CONFS = [BIG]
+CONFS = [EXAMPLE, SMALL, MEDIUM, BIG]
+#CONFS = [MEDIUM]
 
 
 LOAD_CONF = False
@@ -50,29 +50,22 @@ if __name__ == "__main__":
             solvers = []
             solver_configs = []
 
-            # alphas = [2, 5, 10, 15, 20, 25, 30]
-            # betas = [0.1, 0.3, 0.5, 0.8]
-            # gamas = [0.1, 0.3, 0.5, 0.8]
-            #
-            # _bgs = [(0.1, 0.8,),
-            #       (0.2, 0.8,),
-            #       (0.3, 0.8,),
-            #       (0.8, 0.1,),
-            #       (0.8, 0.2,),
-            #       (0.8, 0.3,)]
-            #
-            # for a in alphas:
-            #     for bg in _bgs:
-            #         b = bg[0]
-            #         g = bg[1]
-            #         sconf = SolverConfig("Test alpha={}, beta={}, gamma={}".format(str(a), str(b), str(g)))
-            #         sconf.alpha = a
-            #         sconf.beta = b
-            #         sconf.gama = g
-            #         solver_configs.append(sconf)
+            alphas = [10, 15, 20, 25]
+            betas = gammas = [0, 1., 10., 100.]
 
-            sconf = SolverConfig("Test")
-            solver_configs.append(sconf)
+            #gammas = [1., 10., 100., 1000.]
+
+            for a in alphas:
+                for b in betas:
+                    for g in gammas:
+                        sconf = SolverConfig("Test alpha={}, beta={}, gamma={}".format(str(a), str(b), str(g)))
+                        sconf.alpha = a
+                        sconf.beta = b
+                        sconf.gamma = g
+                        solver_configs.append(sconf)
+
+            # sconf = SolverConfig("Test")
+            # solver_configs.append(sconf)
 
             for solver_config in solver_configs:
                 solvers.append(Solver(config, solver_config))
