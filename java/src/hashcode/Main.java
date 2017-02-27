@@ -16,30 +16,40 @@ import hashcode.solver.ThirdSolver;
 
 public class Main {
 
-	public static void main(String[] args) throws IOException {
+	private static String [] inputs = new String[]{"data/me_at_the_zoo.in", "data/trending_today.in", "data/videos_worth_spreading.in", "data/kittens.in"};
+	private static String [] ouputs = new String[]{"results/me_at_the_zoo.out", "results/trending_today.out", "results/videos_worth_spreading.out", "results/kittens.out"};
+	
+	public static void main(String[] args) throws IOException, InterruptedException {
 		
-		String [] inputs = new String[]{"data/me_at_the_zoo.in", "data/trending_today.in", "data/videos_worth_spreading.in", "data/kittens.in"};
-		String [] ouputs = new String[]{"results/me_at_the_zoo.out", "results/trending_today.out", "results/videos_worth_spreading.out", "results/kittens.out"};
+		//all();
 		
-		List<Solver> solvers = new ArrayList<>();
+		one(0);
 		
-		solvers.add(new FirstSolver());
-		solvers.add(new SecondSolver());
+		//one(2);
 		
-		for(int i = 2; i < inputs.length; i++){
-			Reader reader = new Reader(inputs[i]);
-			
-			Solver solver = new ReverseSolver();
-			List<Cache> caches = solver.solve(reader.getCaches());
-			
-			Writer writer = new Writer();
-			
-			writer.save(ouputs[i], caches);
-			
-			System.out.println("Finished "+inputs[i]);
+	}
+	
+	private static void one(int i) throws IOException, InterruptedException{
+		long start = System.currentTimeMillis();
+		
+		Reader reader = new Reader(inputs[i]);
+		System.out.println("Read data in "+(System.currentTimeMillis() - start));
+		
+		start = System.currentTimeMillis();
+		Solver solver = new ReverseSolver();
+		List<Cache> caches = solver.solve(reader.getCaches());
+		
+		Writer writer = new Writer();
+		
+		writer.save(ouputs[i], caches);
+		
+		System.out.println("Finished "+inputs[i]+" in  "+(System.currentTimeMillis() - start));
+	}
+	
+	private static void all() throws IOException, InterruptedException{
+		for(int i = 0; i < inputs.length; i++){
+			one(i);
 		}
-		
-		
 	}
 
 }

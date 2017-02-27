@@ -66,6 +66,8 @@ public class Reader {
 			Endpoint endpoint = new Endpoint(Integer.parseInt(endpointLine[0]));
 			endpoints.add(endpoint);
 			
+			List<Connection> tempConnections = new ArrayList<>(cachesCount2);
+			
 			for(int loop = 0; loop < cachesCount2; loop++){
 				String [] endpointCacheLine = reader.readLine().split(" ");
 				
@@ -76,7 +78,11 @@ public class Reader {
 					System.out.println("PANIC");
 				}
 				
-				cache.addEndpoint(connection);
+				tempConnections.add(connection);
+			}
+			
+			for(Connection connection : tempConnections){
+				connection.getCache().addEndpoint(connection);
 				endpoint.addCache(connection);
 			}
 		}

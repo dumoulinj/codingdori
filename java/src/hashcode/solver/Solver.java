@@ -6,6 +6,6 @@ import hashcode.data.Cache;
 
 public interface Solver {
 
-	public List<Cache> solve(List<Cache> caches);
+	public List<Cache> solve(List<Cache> caches) throws InterruptedException;
 	
 }
