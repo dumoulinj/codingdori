@@ -2,15 +2,19 @@
 {
     class Request
     {
-        public Video Video { get; private set; }
-        public EndPoint EndPoint { get; private set; }
+
+        public int VideoId{ get; private set; }
+        public int EndPointId { get; private set; }
         public int Number { get; private set; }
 
-        public Request(Video video, EndPoint endPoint, int number)
+        public int CompLatency { get; set; }
+
+        public Request(int videoId, int endPointId, int number, int latency)
         {
-            Video = video;
-            EndPoint = endPoint;
+            VideoId = videoId;
+            EndPointId = endPointId;
             Number = number;
+            CompLatency = latency;
         }
     }
 }

@@ -86,12 +86,13 @@ namespace GoogleHashCpde
             var score = BigInteger.Zero;
             foreach (var request in _conf.Requests)
             {
-                var baseLat = request.EndPoint.Latency;
+                var endPoint = _conf.EndPoints[request.EndPointId];
+                var baseLat = endPoint.Latency;
                 var minLat = baseLat;
-                foreach (var epclat in request.EndPoint.EPCacheLat)
+                foreach (var epclat in endPoint.EPCacheLat)
                 {
 
-                    if ((bool) _optiRes[epclat.Cache.Id][request.Video.Id])
+                    if ((bool) _optiRes[epclat.Cache.Id][request.VideoId])
                     {
                         if (minLat > epclat.Latency)
                         {

@@ -23,16 +23,26 @@ namespace GoogleHashCpde
         public Solution Resolve()
         {
             var sol = new Solution(_conf);
-            var gains = new long[_conf.NumberCache, _conf.NumberVideo];
-            var concernedVideos = new Dictionary<Cache, Dictionary<Video, long>>();
-            var removed = new bool[_conf.NumberCache, _conf.NumberVideo];
+            var cacheVideo = new List<Request>[_conf.NumberCache, _conf.NumberVideo];
+            var gains = new ulong[_conf.NumberCache, _conf.NumberVideo];
+
+            for (var i = 0; i < _conf.NumberCache; i++)
+            {
+                
+                for (var j = 0; j < _conf.NumberVideo; j++)
+                {
+                    cacheVideo[i, j] = new List<Request>();
+                }
+            }
+
             foreach (var request in _conf.Requests.OrderByDescending(r => r.Number))
             {
-                var v = request.Video;
-
-                foreach (var epCacheL in request.EndPoint.EPCacheLat)
+                var vId = request.VideoId;
+                var endPoint = _conf.EndPoints[request.EndPointId];
+                foreach (var epCacheL in endPoint.EPCacheLat)
                 {
-                    gains[epCacheL.Cache.Id, v.Id] += request.Number * (request.EndPoint.Latency - epCacheL.Latency);
+                    gains[epCacheL.Cache.Id, vId] += ((ulong)request.Number) * ((ulong)(endPoint.Latency - epCacheL.Latency));
+                    cacheVideo[epCacheL.Cache.Id, vId].Add(request);
                 }
             }
             long idx = 0;
@@ -40,12 +50,12 @@ namespace GoogleHashCpde
             {
                 var c = 0;
                 var v = 0;
-                var best = 0L;
+                ulong best = 0L;
                 for (var i = 0; i < _conf.NumberCache; i++)
                 {
                     for (var j = 0; j < _conf.NumberVideo; j++)
                     {
-                        var s = gains[i, j] / _conf.Videos[j].Size; //(_conf.Caches[i].Size/_conf.Videos[j].Size);
+                        var s = gains[i, j] /((ulong)_conf.Videos[j].Size); //(_conf.Caches[i].Size/_conf.Videos[j].Size);/  
                         if (s <= best) continue;
                         best = s;
                         c = i;
@@ -61,24 +71,45 @@ namespace GoogleHashCpde
                 {
                     if (sol.PutVideoInCache(_conf.Caches[c], _conf.Videos[v]))
                     {
-                        foreach (var r in _conf.Requests.Where(r => r.Video.Id == v))
+                        var irs = cacheVideo[c, v];
+                        foreach (var r in irs)
                         {
-                            if (r.EndPoint.EPCacheLat.Any(cachLat => cachLat.Cache.Id == c))
+                            var choooseLink = _conf.EndPoints[r.EndPointId].EPCacheLat.Single(l => l.Cache.Id == c);
+                            foreach (var link in _conf.EndPoints[r.EndPointId].EPCacheLat.Where(l => l.Cache.Id != c))
                             {
-                                foreach (var epCacheL in r.EndPoint.EPCacheLat.Where(l=>l.Cache.Id != c))
+
+                                foreach (var sr in cacheVideo[link.Cache.Id,v].Where(sr=>sr.EndPointId==r.EndPointId))
                                 {
-                                    gains[epCacheL.Cache.Id, v] -= r.Number * (r.EndPoint.Latency - epCacheL.Latency);
+                                    sr.CompLatency = choooseLink.Latency;
                                 }
+                                var d=cacheVideo[link.Cache.Id, v].RemoveAll(sr => sr.EndPointId == r.EndPointId && sr.CompLatency <= link.Latency);
+                                gains[link.Cache.Id, v] = cacheVideo[link.Cache.Id, v].Aggregate(0Ul,(a,b) =>
+                                {
+                                    var ep = _conf.EndPoints[b.EndPointId];
+
+                                    return a+(ulong)b.Number *
+                                           (ulong)(b.CompLatency -
+                                                   ep.EPCacheLat.Single(l => l.Cache.Id == link.Cache.Id).Latency);
+                                });
+
                             }
                         }
+                        foreach (var dVid in _conf.Videos.Where(sv => sv.Size > _conf.Caches[c].RemainSize)
+                                .Select(sv => sv.Id))
+                        {
+                            cacheVideo[c, dVid].Clear();
+                            gains[c, dVid] = 0;
+                        }
+                           
+
                     }
                 }
-                gains[c, v] = 0;
-                if (idx == 10000)
+                else
                 {
-                    Console.WriteLine("Terminated because of 10000");
-                    break;
+                    Console.WriteLine("bizarre");
                 }
+                cacheVideo[c, v].Clear();
+                gains[c, v] = 0;
                 idx++;
             }
            Console.WriteLine($"Before opti: {sol.Evaluate()}");
