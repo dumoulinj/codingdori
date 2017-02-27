@@ -21,9 +21,9 @@ public class Main {
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		
-		//all();
+		all();
 		
-		one(0);
+		//one(3);
 		
 		//one(2);
 		

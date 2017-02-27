@@ -279,4 +279,13 @@ public class Cache {
 		}
 		return Integer.MAX_VALUE;
 	}
+	
+	public int getTotalRequestSize(){
+	    int total = 0;
+	    for(Video video : videoScores.keySet()){
+	        total += video.getSize();
+	    }
+	    
+	    return total;
+	}
 }
