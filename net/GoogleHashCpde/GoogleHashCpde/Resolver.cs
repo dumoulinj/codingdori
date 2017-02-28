@@ -20,7 +20,7 @@ namespace GoogleHashCpde
             _conf = conf;
         }
 
-        public Solution Resolve()
+        public Solution Resolve(int bigGain)
         {
             var sol = new Solution(_conf);
             var cacheVideo = new List<Request>[_conf.NumberCache, _conf.NumberVideo];
@@ -46,27 +46,84 @@ namespace GoogleHashCpde
                 }
             }
             long idx = 0;
+            var candidates = new Tuple<int,int>[2];
+            var bests = new ulong[2];
+            ulong v1=0;
+            ulong v2=0;
+            ulong v3 = 0;
+            ulong same = 0;
+            int c;
+            int v;
             while (true)
             {
-                var c = 0;
-                var v = 0;
-                ulong best = 0L;
+                for (var i = 0; i < bests.Length; i++)
+                {
+                    bests[i] = 0UL;
+                }
                 for (var i = 0; i < _conf.NumberCache; i++)
                 {
                     for (var j = 0; j < _conf.NumberVideo; j++)
                     {
-                        var s = gains[i, j] /((ulong)_conf.Videos[j].Size); //(_conf.Caches[i].Size/_conf.Videos[j].Size);/  
-                        if (s <= best) continue;
-                        best = s;
-                        c = i;
-                        v = j;
+                        var s1 = gains[i, j] ;//; //(_conf.Caches[i].Size/_conf.Videos[j].Size);/  
+                        var s2 = gains[i, j] / (ulong) _conf.Videos[j].Size;
+                        if (s1 > bests[0])
+                        {
+                            bests[0] = s1;
+                            candidates[0] = new Tuple<int, int>(i,j);
+                        }
+                        if (s2 > bests[1])
+                        {
+                            bests[1] = s2;
+                            candidates[1] = new Tuple<int, int>(i,j);
+                        }
                     }
                 }
-                if (best == 0)
+                if (bests[0] == 0)
                 {
                     break;
                 }
+                if (candidates[0].Item1 == candidates[1].Item1 && candidates[0].Item2 == candidates[1].Item2)
+                {
+                    c = candidates[0].Item1;
+                    v = candidates[0].Item2;
+                    same++;
+                }
+                else
+                {
+                    var c1 = _conf.Caches[candidates[0].Item1];
+                    if (c1.RemainSize < candidates[0].Item2)
+                    {
+                        v3++;
+                        c = candidates[1].Item1;
+                        v = candidates[1].Item2;
+                    }
+                    else
+                    {
+                        if (idx<bigGain)
+                        {
+                            v1++;
+                            c = candidates[0].Item1;
+                            v = candidates[0].Item2;
+                        }
+                        else
+                        {
+                            v2++;
+                            c = candidates[1].Item1;
+                            v = candidates[1].Item2;
+                        }
+                        //var g1 = gains[candidates[0].Item1, candidates[0].Item2];
+                        //var g2 = gains[candidates[1].Item1, candidates[1].Item2];
+                        //var s1 = _conf.Videos[candidates[0].Item2].Size;
+                        //var s2 = _conf.Videos[candidates[1].Item2].Size;
+                        //if (g1 / g2 > (ulong) (s1 / s2))
+                        //{
+                            
+                        //}
+                       
+                    }
 
+                }
+                
                 if (!sol.IsPlaced(_conf.Caches[c], _conf.Videos[v]))
                 {
                     if (sol.PutVideoInCache(_conf.Caches[c], _conf.Videos[v]))
@@ -112,21 +169,7 @@ namespace GoogleHashCpde
                 gains[c, v] = 0;
                 idx++;
             }
-           Console.WriteLine($"Before opti: {sol.Evaluate()}");
-            for (var i = 0; i < _conf.NumberCache; i++)
-            {
-                var rs = _conf.Caches[i].RemainSize;
-                foreach (var v in _conf.Videos.Where(v => v.Size < rs))
-                {
-                    if (!sol.IsPlaced(_conf.Caches[i], v))
-                    {
-                        sol.PutVideoInCache(_conf.Caches[i], v);
-                    }
-                }
-            }
-
-            Console.WriteLine($"After opti: {sol.Evaluate()}");
-            // MaximizeSolution(sol);
+            Console.WriteLine($"v1 :{v1} v2:{v2} v3:{v3} same: {same}");
             return sol;
         }
 
