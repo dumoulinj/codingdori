@@ -23,7 +23,11 @@ public class MetaVideoRequest {
 	}
 	
 	public int getTimeGain(){
-		return request.getTotal() * (request.getEnpoint().getDatacenterLatency() - latency);
-	} 
+		return getTimeGain(request.getTotal(),request.getEnpoint().getDatacenterLatency(), latency);
+	}
+	
+	public static int getTimeGain(int requests, int dataCenterLatency, int cacheLatency){
+		return requests * (dataCenterLatency - cacheLatency);
+	}
 	
 }

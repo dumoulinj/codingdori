@@ -63,22 +63,44 @@ public class Reader {
 			String [] endpointLine = reader.readLine().split(" ");
 			
 			int cachesCount2 = Integer.parseInt(endpointLine[1]);
-			Endpoint endpoint = new Endpoint(Integer.parseInt(endpointLine[0]));
-			endpoints.add(endpoint);
-			
-			for(int loop = 0; loop < cachesCount2; loop++){
-				String [] endpointCacheLine = reader.readLine().split(" ");
-				
-				Cache cache = caches.get(Integer.parseInt(endpointCacheLine[0]));
-				Connection connection = new Connection(Integer.parseInt(endpointCacheLine[1]), cache, endpoint);
-				
-				if(connection.getLatency() >= endpoint.getDatacenterLatency()){
-					System.out.println("PANIC");
-				}
-				
-				cache.addEndpoint(connection);
-				endpoint.addCache(connection);
-			}
+		    Endpoint endpoint = new Endpoint(Integer.parseInt(endpointLine[0]));
+            endpoints.add(endpoint);
+            
+            List<Connection> tempConnections = new ArrayList<>(cachesCount2);
+            
+            long totalLatency = 0;
+            
+            if(cachesCount2 > 0){
+                for(int loop = 0; loop < cachesCount2; loop++){
+                    String [] endpointCacheLine = reader.readLine().split(" ");
+                    
+                    Cache cache = caches.get(Integer.parseInt(endpointCacheLine[0]));
+                    Connection connection = new Connection(Integer.parseInt(endpointCacheLine[1]), cache, endpoint);
+                    
+                    if(connection.getLatency() >= endpoint.getDatacenterLatency()){
+                        System.out.println("PANIC");
+                    }
+                    
+                    tempConnections.add(connection);
+                    
+                    totalLatency += connection.getLatency();
+                }
+                
+                System.out.println("Endpoint "+i+ " "+cachesCount2);
+                
+                int averageLatency = (int)(totalLatency / cachesCount2);
+                
+                for(Connection connection : tempConnections){
+                    //Drop bad connections
+                    if(connection.getLatency() < 2 *averageLatency){
+                        connection.getCache().addEndpoint(connection);
+                        endpoint.addCache(connection);
+                    }else{
+                        System.out.println("Drop cache "+connection.getLatency() +" "+ averageLatency);
+                    }
+                }
+            }
+            
 		}
 		
 		for(int i = 0; i < requests; i++){
@@ -86,17 +108,21 @@ public class Reader {
 			
 			Video video = videos.get(Integer.parseInt(requestLine[0]));
 			Endpoint endpoint = endpoints.get(Integer.parseInt(requestLine[1]));
-			VideoRequest request = new VideoRequest(Integer.parseInt(requestLine[2]),
-					video,
-					endpoint);
-			
-			endpoint.addRequest(request);
-			
-			
-			for(Connection cache: endpoint.getCaches()){
-				cache.getCache().addRequest(new MetaVideoRequest(request,cache.getLatency()));
+			if(endpoint != null){
+			    VideoRequest request = new VideoRequest(Integer.parseInt(requestLine[2]),
+	                    video,
+	                    endpoint);
+	            
+	            endpoint.addRequest(request);
+	            
+	            for(Connection cache: endpoint.getCaches()){
+	                cache.getCache().addRequest(new MetaVideoRequest(request,cache.getLatency()));
+	            }
 			}
-			
+		}
+		
+		for(Cache cache: caches){
+		    System.out.println("Cache "+cache.getID()+" "+cache.getEndpoints().size()+" "+cache.getSize()+" "+cache.getTotalRequestSize());
 		}
 		
 		reader.close();

@@ -19,6 +19,16 @@ public class ThirdSolver implements Solver{
 
 		List<Cache> cachesTemp = new ArrayList<>(caches);
 		
+		//Presolve some stuff
+		for(Cache cache : cachesTemp){
+		    if(cache.getEndpoints().size() == 1){
+		        Video video = null;
+		        while((video = cache.getBestVideo()) != null){
+		            cache.cacheVideo(video);
+		        }
+		    }
+		}
+		
 		do{
 			
 			cachesTemp.sort(new Comparator<Cache>() {
