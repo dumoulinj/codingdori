@@ -4,10 +4,12 @@ public class MetaVideoRequest {
 
 	private final int latency;
 	private final VideoRequest request;
+	private final boolean badQuality;
 	
-	public MetaVideoRequest(VideoRequest request, int latency){
+	public MetaVideoRequest(VideoRequest request, int latency, boolean badQuality){
 		this.latency = latency;
 		this.request = request;
+		this.badQuality = badQuality;
 	}
 	
 	public int getLatency(){
@@ -23,7 +25,11 @@ public class MetaVideoRequest {
 	}
 	
 	public int getTimeGain(){
-		return getTimeGain(request.getTotal(),request.getEnpoint().getDatacenterLatency(), latency);
+		int score = getTimeGain(request.getTotal(),request.getEnpoint().getDatacenterLatency(), latency);
+		if(badQuality){
+			score *= 0.4;
+		}
+		return score;
 	}
 	
 	public static int getTimeGain(int requests, int dataCenterLatency, int cacheLatency){

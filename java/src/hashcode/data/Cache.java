@@ -20,8 +20,8 @@ public class Cache {
 	
 	private Map<Video, Integer> videoScores = new HashMap<>();
 	
-	private double BASE_SCORE = 0.8;
-	private double SIZE_SCORE = 0.2;
+	public static double BASE_SCORE = 0.2;
+	public static double SIZE_SCORE = 0.8;
 	
 	public Cache(int id, int size){
 		this.size = size;
@@ -97,7 +97,7 @@ public class Cache {
 	
 	public int getVideoScore(Video video){
 		int score = videoScores.get(video);
-		return (int)( BASE_SCORE*score + SIZE_SCORE * score / video.getSize());//(int)(10 * videoScores.get(video) * (double)video.getSize() / getAvailableSpace());
+		return (int)( (BASE_SCORE*score) / getAvailableSpace() + (SIZE_SCORE * score) / video.getSize());//(int)(10 * videoScores.get(video) * (double)video.getSize() / getAvailableSpace());
 	}
 	
 	public List<MetaVideoRequest> getRequests(){
@@ -239,8 +239,10 @@ public class Cache {
 			bestVideo = null;
 		}
 		
-		for(Connection endpoint : endpoints){
-			endpoint.getEndpoint().removeVideo(video);
+		for(Connection connection : endpoints){
+			if(!connection.isBadQuality()){
+				connection.getEndpoint().removeVideo(video, connection.getLatency());
+			}
 		}
 		
 		Set<Video> keys = new HashSet<>(videoScores.keySet());
@@ -275,7 +277,6 @@ public class Cache {
 					return connection.getLatency();
 				}
 			}
-			
 		}
 		return Integer.MAX_VALUE;
 	}
@@ -287,5 +288,9 @@ public class Cache {
 	    }
 	    
 	    return total;
+	}
+
+	public boolean isVideoCached(Video video) {
+		return cachedVideos.contains(video);
 	}
 }

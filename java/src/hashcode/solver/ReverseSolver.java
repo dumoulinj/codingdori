@@ -72,11 +72,23 @@ public class ReverseSolver implements Solver{
 						video = pair.video;
 						best = pair.score;
 						bestCache = cache; 
-					}else if(pair.score == best && video != null &&
-							video.getSize() > pair.video.getSize()){
-						video = pair.video;
-						best = pair.score;
-						bestCache = cache; 
+					}else if(pair.score == best){
+						if(cache.getAvailableSpace() == pair.video.getSize()){
+							video = pair.video;
+							best = pair.score;
+							bestCache = cache;
+						}if(video != null && video.getSize() > pair.video.getSize()){
+							video = pair.video;
+							best = pair.score;
+							bestCache = cache; 
+						}else if(pair.score == best && video != null &&
+								video.getSize() == pair.video.getSize() &&
+								bestCache.getAvailableSpace() < cache.getAvailableSpace()
+								){
+							video = pair.video;
+							best = pair.score;
+							bestCache = cache; 
+						}
 					}
 				}
 			}
@@ -100,7 +112,7 @@ public class ReverseSolver implements Solver{
 			}
 			
 			if(last != temp.size()){
-				System.out.println(temp.size()+" "+ best);
+				//System.out.println(temp.size()+" "+ best);
 				last = temp.size();
 			}
 			

@@ -22,17 +22,25 @@ public class Writer {
 		
 		writer.write(total+"\n");
 		
+		int totalVideoSize = 0;
+		int totalCacheSIze = 0;
 		for(Cache cache: caches){
+			totalCacheSIze += cache.getSize();
+			
 			if(cache.getCachedVideos().size() > 0){
 				writer.write(""+cache.getID());
-				
 				for(Video video : cache.getCachedVideos()){
 					writer.write(" "+video.getId());
+					totalVideoSize += video.getSize();
 				}
+				
+				//System.out.println(cache.getSize()+" "+totalVideoSize);
 
 				writer.write("\n");
 			}
 		}
+		
+		//System.out.println("Cached "+totalVideoSize+" video mem, max : "+totalCacheSIze);
 		
 		writer.close();
 	}

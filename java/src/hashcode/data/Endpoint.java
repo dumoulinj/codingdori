@@ -30,7 +30,16 @@ public class Endpoint {
 	}
 	
 	public void addRequest(VideoRequest request){
-		requests.put(request.getVideo(), request);
+		if(requests.containsKey(request.getVideo())){
+			/*System.out.println("PANIC");
+			System.out.println(request.getVideo().getId()+" "+request.getTotal());
+			System.out.println(requests.get(request.getVideo()).getVideo().getId()+" "+requests.get(request.getVideo()).getTotal());
+			*/
+			
+			requests.get(request.getVideo()).addRequests(request.getTotal());
+		}else{
+			requests.put(request.getVideo(), request);
+		}
 	}
 	
 	public List<VideoRequest> getRequests(){
@@ -45,17 +54,68 @@ public class Endpoint {
 		}
 	}
 
-	public void removeVideo(Video video) {
+	public void removeVideo(Video video, int latency) {
 		VideoRequest request = requests.get(video);
 		if(request != null){
 
-			requests.remove(video);
+			//requests.remove(video);
 			
-			for(Connection connection : caches){
-				connection.getCache().removeRequest(video, this, MetaVideoRequest.getTimeGain(request.getTotal(),
+			if(latency < request.getBestLatency()){
+				int oldScore = MetaVideoRequest.getTimeGain(request.getTotal(),
 						getDatacenterLatency(),
-						connection.getLatency()));
+						request.getBestLatency());
+				
+				for(Connection connection : caches){
+					int newScore = MetaVideoRequest.getTimeGain(request.getTotal(),
+							getDatacenterLatency(),
+							latency);
+					
+					if(newScore > oldScore){
+						connection.getCache().removeRequest(video, this, newScore - oldScore);
+					}
+				}
+				
+				request.setBestLatency(latency);
 			}
+			
 		}
 	}
+
+	public int getTotalRequests() {
+		int total = 0;
+		for(Video video : requests.keySet()){
+			total += requests.get(video).getTotal();
+		}
+		
+		return total;
+	}
+
+	public long getTimeSaved() {
+		
+		long saved = 0;
+		
+		for(Video video : requests.keySet()){
+			
+			int bestLatency = getDatacenterLatency();
+						
+			for(Connection connection : caches){
+				if(connection.getLatency() < bestLatency && connection.getCache().isVideoCached(video)){
+					
+					bestLatency = connection.getLatency();
+				}
+			}
+			
+			if(bestLatency != getDatacenterLatency()){
+				int savedTime = MetaVideoRequest.getTimeGain(requests.get(video).getTotal(),
+						getDatacenterLatency(),
+						bestLatency);
+				//System.out.println("Saved "+savedTime+" DC : "+getDatacenterLatency()+" "+bestLatency+" "+requests.get(video).getTotal());
+				saved += savedTime;
+			}
+		}
+		
+		return saved;
+	}
+	
+	
 }

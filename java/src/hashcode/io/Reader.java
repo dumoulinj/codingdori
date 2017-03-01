@@ -86,18 +86,16 @@ public class Reader {
                     totalLatency += connection.getLatency();
                 }
                 
-                System.out.println("Endpoint "+i+ " "+cachesCount2);
+                //System.out.println("Endpoint "+i+ " "+cachesCount2);
                 
                 int averageLatency = (int)(totalLatency / cachesCount2);
                 
                 for(Connection connection : tempConnections){
-                    //Drop bad connections
-                    if(connection.getLatency() < 2 *averageLatency){
-                        connection.getCache().addEndpoint(connection);
-                        endpoint.addCache(connection);
-                    }else{
-                        System.out.println("Drop cache "+connection.getLatency() +" "+ averageLatency);
-                    }
+                	connection.getCache().addEndpoint(connection);
+                    endpoint.addCache(connection);
+                    connection.setBadQuality(false);//connection.getLatency() > averageLatency);
+                    
+                    //System.out.println("Endpoint "+i+ " latency cache "+connection.getLatency()+" DC : "+endpoint.getDatacenterLatency());
                 }
             }
             
@@ -108,22 +106,48 @@ public class Reader {
 			
 			Video video = videos.get(Integer.parseInt(requestLine[0]));
 			Endpoint endpoint = endpoints.get(Integer.parseInt(requestLine[1]));
+			
+			
+			
 			if(endpoint != null){
 			    VideoRequest request = new VideoRequest(Integer.parseInt(requestLine[2]),
 	                    video,
-	                    endpoint);
+	                    endpoint,
+	                    endpoint.getDatacenterLatency());
 	            
 	            endpoint.addRequest(request);
-	            
-	            for(Connection cache: endpoint.getCaches()){
-	                cache.getCache().addRequest(new MetaVideoRequest(request,cache.getLatency()));
+			}else{
+				System.out.println("PANIC");
+			}
+		}
+		
+		for(Endpoint endpoint : endpoints){
+			for(VideoRequest request : endpoint.getRequests()){
+				for(Connection connection: endpoint.getCaches()){
+	                connection.getCache().addRequest(new MetaVideoRequest(request, connection.getLatency(), connection.isBadQuality()));
 	            }
 			}
 		}
 		
+		int totalCacheSize = 0;
 		for(Cache cache: caches){
-		    System.out.println("Cache "+cache.getID()+" "+cache.getEndpoints().size()+" "+cache.getSize()+" "+cache.getTotalRequestSize());
+		    /*System.out.println("Cache "+cache.getID()+" Endpoints : "+cache.getEndpoints().size()+
+		    		" Requests : "+cache.getRequests().size()+
+		    		" Size : "+cache.getSize()+
+		    		" TotalSize : "+cache.getTotalRequestSize()
+		    		);*/
+		    
+		    totalCacheSize += cache.getSize();
 		}
+		
+		int totalVideoSize = 0;
+		for(Video video : videos){
+			//System.out.println("Video "+video.getId()+" size "+ video.getSize());
+			totalVideoSize += video.getSize();
+		}
+		
+		//System.out.println("Cache size : "+ totalCacheSize+" video size : "+totalVideoSize);
+		
 		
 		reader.close();
 	}

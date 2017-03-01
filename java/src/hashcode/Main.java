@@ -1,18 +1,15 @@
 package hashcode;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.math.BigInteger;
 import java.util.List;
 
 import hashcode.data.Cache;
+import hashcode.data.Endpoint;
 import hashcode.io.Reader;
 import hashcode.io.Writer;
-import hashcode.solver.FirstSolver;
-import hashcode.solver.FourthSolver;
 import hashcode.solver.ReverseSolver;
-import hashcode.solver.SecondSolver;
 import hashcode.solver.Solver;
-import hashcode.solver.ThirdSolver;
 
 public class Main {
 
@@ -21,34 +18,65 @@ public class Main {
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		
+		//testParameters(1);
 		all();
 		
-		//one(3);
+		//one(0);
 		
 		//one(2);
 		
 	}
 	
+	private static void testParameters(int problem) throws IOException, InterruptedException{
+		
+		for(int i = 0; i <= 10; i++){
+			Cache.BASE_SCORE = i * 0.1;
+			Cache.SIZE_SCORE = (1 - Cache.BASE_SCORE);
+			
+			one(problem);
+		}
+	}
+	
 	private static void one(int i) throws IOException, InterruptedException{
+
 		long start = System.currentTimeMillis();
-		
 		Reader reader = new Reader(inputs[i]);
-		System.out.println("Read data in "+(System.currentTimeMillis() - start));
+		//System.out.println("Read data in "+(System.currentTimeMillis() - start));
 		
-		start = System.currentTimeMillis();
 		Solver solver = new ReverseSolver();
 		List<Cache> caches = solver.solve(reader.getCaches());
+		
+		System.out.println("Score : "+getScore(reader.getEndpoints())+" BASE = "+Cache.BASE_SCORE);
 		
 		Writer writer = new Writer();
 		
 		writer.save(ouputs[i], caches);
+	}
+	
+	private static BigInteger getScore(List<Endpoint> endpoints){
+		BigInteger total = BigInteger.ZERO;
+		BigInteger totalRequests =  BigInteger.ZERO;
 		
-		System.out.println("Finished "+inputs[i]+" in  "+(System.currentTimeMillis() - start));
+		for(Endpoint endpoint : endpoints){
+			long savedTime = endpoint.getTimeSaved();
+			total = total.add(BigInteger.valueOf(savedTime * 1000));
+			
+			long allRequests = endpoint.getTotalRequests();
+			
+			totalRequests = totalRequests.add(BigInteger.valueOf(allRequests));
+			
+			//System.out.println(savedTime +" "+totalRequests);
+		}
+		
+		return total.divide(totalRequests);
 	}
 	
 	private static void all() throws IOException, InterruptedException{
 		for(int i = 0; i < inputs.length; i++){
+			long start = System.currentTimeMillis();
 			one(i);
+			
+			System.out.println("Finished "+inputs[i]+" in  "+(System.currentTimeMillis() - start));
 		}
 	}
 

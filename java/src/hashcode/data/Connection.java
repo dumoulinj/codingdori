@@ -5,6 +5,7 @@ public class Connection {
 	private final int latency;
 	private final Cache cache;
 	private final Endpoint endpoint;
+	private boolean badQuality = false;
 	
 	public Connection(int latency, Cache cache, Endpoint endpoint){
 		this.latency = latency;
@@ -22,5 +23,13 @@ public class Connection {
 	
 	public Endpoint getEndpoint(){
 		return endpoint;
+	}
+	
+	public void setBadQuality(boolean badQuality){
+		this.badQuality = badQuality;
+	}
+	
+	public boolean isBadQuality(){
+		return badQuality;
 	}
 }
