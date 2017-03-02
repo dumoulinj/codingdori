@@ -91,10 +91,11 @@ public class Reader {
                 int averageLatency = (int)(totalLatency / cachesCount2);
                 
                 for(Connection connection : tempConnections){
-                	connection.getCache().addEndpoint(connection);
+                	
+            		connection.getCache().addEndpoint(connection);
                     endpoint.addCache(connection);
-                    connection.setBadQuality(false);//connection.getLatency() > averageLatency);
-                    
+                    connection.setBadQuality(false);//connection.getLatency() > 2 * averageLatency);//connection.getLatency() > averageLatency);
+                	                    
                     //System.out.println("Endpoint "+i+ " latency cache "+connection.getLatency()+" DC : "+endpoint.getDatacenterLatency());
                 }
             }
@@ -106,8 +107,6 @@ public class Reader {
 			
 			Video video = videos.get(Integer.parseInt(requestLine[0]));
 			Endpoint endpoint = endpoints.get(Integer.parseInt(requestLine[1]));
-			
-			
 			
 			if(endpoint != null){
 			    VideoRequest request = new VideoRequest(Integer.parseInt(requestLine[2]),
@@ -121,13 +120,18 @@ public class Reader {
 			}
 		}
 		
+		int requestCount = 0;
+		int requestVolume = 0;
 		for(Endpoint endpoint : endpoints){
 			for(VideoRequest request : endpoint.getRequests()){
+				requestCount++;
+				requestVolume += request.getTotal();
 				for(Connection connection: endpoint.getCaches()){
 	                connection.getCache().addRequest(new MetaVideoRequest(request, connection.getLatency(), connection.isBadQuality()));
 	            }
 			}
 		}
+		//System.out.println("Requests "+requestCount+" "+requestVolume);
 		
 		int totalCacheSize = 0;
 		for(Cache cache: caches){

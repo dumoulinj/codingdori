@@ -29,10 +29,18 @@ public class Writer {
 			
 			if(cache.getCachedVideos().size() > 0){
 				writer.write(""+cache.getID());
+				
+				int videoSize = 0;
 				for(Video video : cache.getCachedVideos()){
 					writer.write(" "+video.getId());
-					totalVideoSize += video.getSize();
+					videoSize += video.getSize();
 				}
+				
+				if(cache.getSize() < videoSize){
+					throw new RuntimeException(cache.getSize() +" "+videoSize);
+				}
+				
+				totalVideoSize += videoSize;
 				
 				//System.out.println(cache.getSize()+" "+totalVideoSize);
 

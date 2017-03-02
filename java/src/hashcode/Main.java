@@ -1,5 +1,6 @@
 package hashcode;
 
+import java.awt.image.RescaleOp;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
@@ -10,20 +11,25 @@ import hashcode.io.Reader;
 import hashcode.io.Writer;
 import hashcode.solver.ReverseSolver;
 import hashcode.solver.Solver;
+import hashcode.solver.TestSolver;
 
 public class Main {
 
-	private static String [] inputs = new String[]{"data/me_at_the_zoo.in", "data/trending_today.in", "data/videos_worth_spreading.in", "data/kittens.in"};
-	private static String [] ouputs = new String[]{"results/me_at_the_zoo.out", "results/trending_today.out", "results/videos_worth_spreading.out", "results/kittens.out"};
+	private static String [] inputs = new String[]{"data/me_at_the_zoo.in", "data/videos_worth_spreading.in", "data/trending_today.in", "data/kittens.in"};
+	private static String [] inputsAntonio = new String[]{"../antonio/inputs/me_at_the_zoo_.in", "../antonio/inputs/videos_worth_spreading_.in", "../antonio/inputs/trending_today_.in", "../antonio/inputs/kittens_.in"};
+	
+	private static String [] ouputs = new String[]{"results/me_at_the_zoo.out", "results/videos_worth_spreading.out", "results/trending_today.out", "results/kittens.out"};
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		
-		//testParameters(1);
-		all();
+		//testParameters(0);
+		//all();
 		
-		//one(0);
+		/*one(0);
+		one(1);
+		one(2);*/
 		
-		//one(2);
+		one(3);
 		
 	}
 	
@@ -33,14 +39,18 @@ public class Main {
 			Cache.BASE_SCORE = i * 0.1;
 			Cache.SIZE_SCORE = (1 - Cache.BASE_SCORE);
 			
-			one(problem);
+			one(inputs[problem], null);
 		}
 	}
 	
 	private static void one(int i) throws IOException, InterruptedException{
+		one(inputs[i], ouputs[i]);
+	}
+	
+	private static void one(String input, String output) throws IOException, InterruptedException{
 
 		long start = System.currentTimeMillis();
-		Reader reader = new Reader(inputs[i]);
+		Reader reader = new Reader(input);
 		//System.out.println("Read data in "+(System.currentTimeMillis() - start));
 		
 		Solver solver = new ReverseSolver();
@@ -48,9 +58,15 @@ public class Main {
 		
 		System.out.println("Score : "+getScore(reader.getEndpoints())+" BASE = "+Cache.BASE_SCORE);
 		
-		Writer writer = new Writer();
+		if(output != null) {
+			Writer writer = new Writer();
+			
+			writer.save(output, caches);
+			System.out.println("Saved in "+output);
+		}else{
+			System.out.println("Dont save result");
+		}
 		
-		writer.save(ouputs[i], caches);
 	}
 	
 	private static BigInteger getScore(List<Endpoint> endpoints){

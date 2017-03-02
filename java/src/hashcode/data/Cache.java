@@ -19,9 +19,11 @@ public class Cache {
 	private Set<Video> cachedVideos = new HashSet();
 	
 	private Map<Video, Integer> videoScores = new HashMap<>();
+	private int remainingVideoSize = 0;
 	
-	public static double BASE_SCORE = 0.2;
-	public static double SIZE_SCORE = 0.8;
+	public static double BASE_SCORE = 0;
+	public static double SIZE_SCORE = 1;
+	public static double SIZE_FACTOR = 1;
 	
 	public Cache(int id, int size){
 		this.size = size;
@@ -50,9 +52,14 @@ public class Cache {
 		Video video = request.getVideo();
 		if(!videoScores.containsKey(video)){
 			videoScores.put(video, 0);
+			remainingVideoSize += video.getSize();
+			video.addCache();
 		}
 		
 		videoScores.put(video, videoScores.get(video) + request.getTimeGain() );
+		remainingCache = -1;
+		
+		totalSize = -1;
 		
 		bestVideo = null;
 	}
@@ -61,43 +68,115 @@ public class Cache {
 	
 	public Video getBestVideo(){
 		if(bestVideo != null){
-//			System.out.println("Use cached best");
 			return bestVideo;
 		}
-//		System.out.println("Recalc best");
 		
-		int best = 0;
-		Video video = null;
-		
-		/*long totalScore = 0;
-		for(int score : videoScores.values()){
-			totalScore += score;
-		}*/
-		
-		for(final Video temp : videoScores.keySet()){
-			if(temp.getSize() <= getAvailableSpace()){
-				final int score = getVideoScore(temp);//(int)(10 * videoScores.get(temp) * (double)temp.getSize() / getAvailableSpace());
-				
-				if(video == null){
-					video = temp;
-					best = score;
-				}else if(score >= best){
-					if(score > best || video.getSize() > temp.getSize()){
+		if(videoScores.size() > 2 && videoScores.size() < 20 && getAvailableSpace() < getTotalRequestSize()){
+			bestVideo = getBestVideoBackpack();
+		}else{
+			double best = 0;
+			Video video = null;
+			
+			final int availableSpace = getAvailableSpace();
+			
+			for(final Video temp : videoScores.keySet()){
+				if(temp.getSize() <= availableSpace){
+					final double score = getVideoScore(temp);//(int)(10 * videoScores.get(temp) * (double)temp.getSize() / getAvailableSpace());
+					
+					if(video == null){
 						video = temp;
 						best = score;
+					}else if(score >= best){
+						if(score > best || video.getSize() > temp.getSize()){
+							video = temp;
+							best = score;
+						}
 					}
 				}
 			}
+			
+			bestVideo = video;
 		}
 		
-		bestVideo = video;
-		
-		return video;
+		return bestVideo;
 	}
 	
-	public int getVideoScore(Video video){
-		int score = videoScores.get(video);
-		return (int)( (BASE_SCORE*score) / getAvailableSpace() + (SIZE_SCORE * score) / video.getSize());//(int)(10 * videoScores.get(video) * (double)video.getSize() / getAvailableSpace());
+	private Video getBestVideoBackpack(){
+		Set<Video> combination = getBestCombiation();
+		
+		//System.out.println(combination.size() +" "+videoScores.size());
+		
+		Video best = null;
+		for(Video video : combination){
+			if(best == null || getVideoScore(video) > getVideoScore(best)){
+				best = video;
+			}
+		}
+		
+		return best;
+	}
+	
+	public void solveCache(){
+		Set<Video> best = getBestCombiation();
+		
+		for(Video video : best){
+			cacheVideo(video);
+		}
+	}
+	
+	private Set<Video> getBestCombiation(){
+		int remainingVideos = videoScores.keySet().size();
+		
+		List<Video> videos = new ArrayList<>(videoScores.keySet());
+		
+		long bestSolution = 0;
+		int bestScore = 0;
+		
+		for(long i = 1; i < Math.pow(2, remainingVideos); i++){
+			int size = 0;
+			int score = 0;
+			
+			for(int v = 0; v < videos.size(); v++){
+				if ((i & (1L << v)) != 0)
+				{
+					int tempSize = videos.get(v).getSize();
+					
+					if(size + tempSize < getAvailableSpace()){
+					   size += tempSize;
+					   score += videoScores.get(videos.get(v));
+					}else{
+
+						size = -1;
+						break;
+					}
+				}
+			}
+			
+			if(score > bestScore){
+				bestSolution = i;
+				bestScore = score;
+			}
+		}
+		
+		Set<Video> solution = new HashSet<>();
+		
+		for(int v = 0; v < videos.size(); v++){
+			if ((bestSolution & (1L << v)) != 0)
+			{
+				solution.add(videos.get(v));
+			}
+		}
+		
+		return solution;
+	}
+	
+	public double getVideoScore(Video video){
+		double score = videoScores.get(video);
+		return (( BASE_SCORE*(score / (video.getSize() * (1 + Math.log(video.possibleCaches()))) ) + (SIZE_SCORE * score) / (video.getSize())) );//(int)(10 * videoScores.get(video) * (double)video.getSize() / getAvailableSpace());
+	}
+	
+	public double getVideoScoreRaw(Video video){
+		return videoScores.get(video);
 	}
 	
 	public List<MetaVideoRequest> getRequests(){
@@ -121,6 +200,9 @@ public class Cache {
 			
 			if(newScore <= 0){
 				videoScores.remove(video);
+				remainingVideoSize -= video.getSize();
+				video.removeCache();
+				totalSize = -1;
 			}else{
 				videoScores.put(video, newScore);
 			}
@@ -129,25 +211,14 @@ public class Cache {
 				bestVideo = null;
 			}
 		}
+		remainingCache = -1;
 	}
+	
+	
 	
 	private List<MetaVideoRequest> cachedRequests = null;
 	
 	public List<MetaVideoRequest> getRequestsFromEndpoints(boolean mustFit){
-		/*if(cachedRequests != null){
-			return cachedRequests;
-		}
-		
-		List<MetaVideoRequest> requests = new ArrayList<>();
-		for(Connection connection : endpoints){
-			for(VideoRequest request : connection.getEndpoint().getRequests()){
-				if(!mustFit || request.getVideo().getSize() <= getAvailableSpace()){
-					requests.add(new MetaVideoRequest(request, connection.getLatency()));
-				}
-			}
-		}
-		
-		cachedRequests = requests;*/
 		
 		if(!mustFit){
 			return requests;
@@ -234,6 +305,8 @@ public class Cache {
 		usedSpace += video.getSize();
 		
 		videoScores.remove(video);
+		remainingVideoSize -= video.getSize();
+		video.removeCache();
 		
 		if(video == bestVideo){
 			bestVideo = null;
@@ -250,9 +323,12 @@ public class Cache {
 		for(Video key : keys){
 			if(key.getSize() > getAvailableSpace()){
 				videoScores.remove(key);
+				remainingVideoSize -= key.getSize();
+				key.removeCache();
 			}
 		}
 		
+		totalSize = -1;
 	}
 	
 	public int getCacheSize(){		
@@ -281,16 +357,41 @@ public class Cache {
 		return Integer.MAX_VALUE;
 	}
 	
+	int totalSize = -1;
+	
 	public int getTotalRequestSize(){
+		return remainingVideoSize;
+	}
+	
+	public Set<Video> getRemainingVideos(){
+		return videoScores.keySet();
+	}
+	
+	int remainingCache = -1;
+	
+	public int getRemainingScore(){
+		if(remainingCache != -1){
+			return remainingCache;
+		}
+		
 	    int total = 0;
 	    for(Video video : videoScores.keySet()){
-	        total += video.getSize();
+	    	if(video.getSize() <= getAvailableSpace()){
+
+		        total += videoScores.get(video);
+	    	}
 	    }
+	    
+	    remainingCache = total;
 	    
 	    return total;
 	}
 
 	public boolean isVideoCached(Video video) {
 		return cachedVideos.contains(video);
+	}
+	
+	public String toString(){
+		return "ID : "+getID();
 	}
 }

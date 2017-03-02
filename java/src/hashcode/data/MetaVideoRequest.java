@@ -25,15 +25,15 @@ public class MetaVideoRequest {
 	}
 	
 	public int getTimeGain(){
-		int score = getTimeGain(request.getTotal(),request.getEnpoint().getDatacenterLatency(), latency);
+		int score = getTimeGain(request.getTotal(),request.getEnpoint().getDatacenterLatency(), latency,request.getEnpoint().getCaches().size());
 		if(badQuality){
 			score *= 0.4;
 		}
 		return score;
 	}
 	
-	public static int getTimeGain(int requests, int dataCenterLatency, int cacheLatency){
-		return requests * (dataCenterLatency - cacheLatency);
+	public static int getTimeGain(int requests, int dataCenterLatency, int cacheLatency, int modifier){
+		return (int)(requests / (1 + Math.log(modifier)))* (dataCenterLatency - cacheLatency);
 	}
 	
 }

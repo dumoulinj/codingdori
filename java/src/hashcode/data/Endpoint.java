@@ -36,7 +36,10 @@ public class Endpoint {
 			System.out.println(requests.get(request.getVideo()).getVideo().getId()+" "+requests.get(request.getVideo()).getTotal());
 			*/
 			
+			//int oldTotal = requests.get(request.getVideo()).getTotal();
 			requests.get(request.getVideo()).addRequests(request.getTotal());
+			
+			//System.out.println("Merged "+oldTotal+" + "+request.getTotal() +" = "+requests.get(request.getVideo()).getTotal());
 		}else{
 			requests.put(request.getVideo(), request);
 		}
@@ -63,12 +66,14 @@ public class Endpoint {
 			if(latency < request.getBestLatency()){
 				int oldScore = MetaVideoRequest.getTimeGain(request.getTotal(),
 						getDatacenterLatency(),
-						request.getBestLatency());
+						request.getBestLatency(),
+						request.getEnpoint().getCaches().size());
 				
 				for(Connection connection : caches){
 					int newScore = MetaVideoRequest.getTimeGain(request.getTotal(),
 							getDatacenterLatency(),
-							latency);
+							latency,
+							request.getEnpoint().getCaches().size());
 					
 					if(newScore > oldScore){
 						connection.getCache().removeRequest(video, this, newScore - oldScore);
@@ -106,9 +111,11 @@ public class Endpoint {
 			}
 			
 			if(bestLatency != getDatacenterLatency()){
-				int savedTime = MetaVideoRequest.getTimeGain(requests.get(video).getTotal(),
+				VideoRequest request = requests.get(video);
+				int savedTime = MetaVideoRequest.getTimeGain(request.getTotal(),
 						getDatacenterLatency(),
-						bestLatency);
+						bestLatency,
+						1);
 				//System.out.println("Saved "+savedTime+" DC : "+getDatacenterLatency()+" "+bestLatency+" "+requests.get(video).getTotal());
 				saved += savedTime;
 			}

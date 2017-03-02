@@ -35,7 +35,7 @@ public class VideoRequest {
 	}
 
 	public void addRequests(int total) {
-		total += total;
+		this.total += total;
 	}
 	
 	
