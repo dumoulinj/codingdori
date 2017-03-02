@@ -16,7 +16,7 @@ namespace GoogleHashCpde
             var cdir = Directory.GetCurrentDirectory();
             var baseFolder =Path.Combine(cdir, "DS");
             var result = new Dictionary<string, BigInteger>();
-            for (var i = 0; i < int.MaxValue; i++)
+            for (var i = 0; i < 20000; i+=100)
             {
                 Console.WriteLine($"Starting {i}");
 
