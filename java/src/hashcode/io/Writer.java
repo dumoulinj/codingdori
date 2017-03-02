@@ -22,17 +22,33 @@ public class Writer {
 		
 		writer.write(total+"\n");
 		
+		int totalVideoSize = 0;
+		int totalCacheSIze = 0;
 		for(Cache cache: caches){
+			totalCacheSIze += cache.getSize();
+			
 			if(cache.getCachedVideos().size() > 0){
 				writer.write(""+cache.getID());
 				
+				int videoSize = 0;
 				for(Video video : cache.getCachedVideos()){
 					writer.write(" "+video.getId());
+					videoSize += video.getSize();
 				}
+				
+				if(cache.getSize() < videoSize){
+					throw new RuntimeException(cache.getSize() +" "+videoSize);
+				}
+				
+				totalVideoSize += videoSize;
+				
+				//System.out.println(cache.getSize()+" "+totalVideoSize);
 
 				writer.write("\n");
 			}
 		}
+		
+		//System.out.println("Cached "+totalVideoSize+" video mem, max : "+totalCacheSIze);
 		
 		writer.close();
 	}

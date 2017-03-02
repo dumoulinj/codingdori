@@ -3,8 +3,10 @@ package hashcode.solver;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -19,7 +21,7 @@ import hashcode.data.VideoRequest;
 public class ReverseSolver implements Solver{
 
 	private static class Pair{
-		int score;
+		double score;
 		Video video;
 	}
 	
@@ -28,7 +30,7 @@ public class ReverseSolver implements Solver{
 		
 		List<Cache> temp = new ArrayList<>(caches);
 		
-		ExecutorService service = Executors.newFixedThreadPool(4);
+		ExecutorService service = Executors.newFixedThreadPool(8);
 		final List<Pair> pairs = new ArrayList<>(temp.size());
 
 		for(int i = 0; i < temp.size(); i++){
@@ -37,7 +39,7 @@ public class ReverseSolver implements Solver{
 		
 		int last = -1;
 		do{
-			int best = 0;
+			double best = -1;
 			Video video = null;
 			Cache bestCache = null;
 			
@@ -72,11 +74,29 @@ public class ReverseSolver implements Solver{
 						video = pair.video;
 						best = pair.score;
 						bestCache = cache; 
-					}else if(pair.score == best && video != null &&
-							video.getSize() > pair.video.getSize()){
-						video = pair.video;
-						best = pair.score;
-						bestCache = cache; 
+					}else if(Math.abs(best - pair.score) < pair.score * 0.01){
+						if(cache.getAvailableSpace() == pair.video.getSize()){
+							video = pair.video;
+							best = pair.score;
+							bestCache = cache;
+						}else if(bestCache.getRemainingScore() > cache.getRemainingScore()){
+							video = pair.video;
+							best = pair.score;
+							bestCache = cache;
+						}
+						
+						/*if(video != null && video.getSize() > pair.video.getSize()){
+							video = pair.video;
+							best = pair.score;
+							bestCache = cache; 
+						}else if(pair.score == best && video != null &&
+								video.getSize() == pair.video.getSize() &&
+								bestCache.getAvailableSpace() < cache.getAvailableSpace()
+								){
+							video = pair.video;
+							best = pair.score;
+							bestCache = cache; 
+						}*/
 					}
 				}
 			}
@@ -99,8 +119,19 @@ public class ReverseSolver implements Solver{
 				}
 			}
 			
+			//Finish trivial caches
+			//System.out.println(temp.size());
+			for(Cache cache : temp){
+				if(cache.getAvailableSpace() >= cache.getTotalRequestSize()){
+					Set<Video> videoCopy = new HashSet<>(cache.getRemainingVideos());
+					for(Video videoTemp : videoCopy){
+						cache.cacheVideo(videoTemp);
+					}
+				}
+			}
+			
 			if(last != temp.size()){
-				System.out.println(temp.size()+" "+ best);
+				//System.out.println(temp.size()+" "+ best);
 				last = temp.size();
 			}
 			
